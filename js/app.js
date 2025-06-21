@@ -513,6 +513,11 @@ class CountdownTimer {
 
     onTimerComplete() {
         console.log('Timer completed, current cycle:', this.cycleCount + 1);
+        
+        // Dừng timer hiện tại
+        clearInterval(this.intervalId);
+        this.intervalId = null;
+        
         this.cycleCount++;
         this.playCompletionSound();
 
@@ -526,12 +531,19 @@ class CountdownTimer {
             this.ui.showNotification('Hoàn thành chu kỳ!', message);
         }
         
+        // Kiểm tra nếu đã đạt đủ số chu kỳ
         if (this.maxCycles > 0 && this.cycleCount >= this.maxCycles) {
+            console.log('Reached max cycles:', this.maxCycles);
             this.handleCycleCompletion();
             return;
         }
         
+        // Bắt đầu chu kỳ mới
         this.currentSeconds = this.totalSeconds;
+        if (this.isRunning) {
+            console.log('Starting new cycle');
+            this.start(true);
+        }
         this.updateUI();
     }
 
@@ -545,15 +557,21 @@ class CountdownTimer {
     }
 
     handleCycleCompletion() {
+        console.log('All cycles completed');
         this.isRunning = false;
+        this.isPaused = false;
         clearInterval(this.intervalId);
+        this.intervalId = null;
+        
+        // Reset currentSeconds để không bị âm
+        this.currentSeconds = 0;
         this.updateUI();
 
         const message = `🎉 Đã hoàn thành ${this.cycleCount} chu kỳ!`;
         if (window.Android) {
             window.Android.showNotification('Hoàn thành!', message);
         } else {
-            alert(message);
+            this.ui.showNotification('Hoàn thành!', message);
         }
     }
 
