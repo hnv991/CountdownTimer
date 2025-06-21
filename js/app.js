@@ -260,32 +260,12 @@ class TimerUI {
     }
 
     showNotification(title, message) {
-        console.log('Attempting to show notification:', title, message);
-        if ('Notification' in window) {
-            if (Notification.permission === 'granted') {
-                console.log('Notification permission granted, showing notification');
-                new Notification(title, {
-                    body: message,
-                    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">⏰</text></svg>'
-                });
-            } else if (Notification.permission === 'denied') {
-                console.log('Notification permission denied, showing alert instead');
-                alert(message);
-            } else {
-                console.log('Requesting notification permission');
-                Notification.requestPermission().then(permission => {
-                    if (permission === 'granted') {
-                        new Notification(title, {
-                            body: message,
-                            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">⏰</text></svg>'
-                        });
-                    } else {
-                        alert(message);
-                    }
-                });
-            }
+        if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification(title, {
+                body: message,
+                icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">⏰</text></svg>'
+            });
         } else {
-            console.log('Notifications not supported, showing alert');
             alert(message);
         }
     }
@@ -334,12 +314,7 @@ class CountdownTimer {
 
     initializeApp() {
         if ('Notification' in window) {
-            console.log('Checking notification permission status');
-            Notification.requestPermission().then(permission => {
-                console.log('Notification permission status:', permission);
-            });
-        } else {
-            console.log('Notifications not supported in this browser');
+            Notification.requestPermission();
         }
 
         window.addEventListener('beforeunload', (e) => {
@@ -410,25 +385,8 @@ class CountdownTimer {
     }
 
     handleBackgroundState() {
-        console.log('App entering background state');
         this.stateManager.saveState(this.getState());
         this.stateManager.saveEndTime(this.currentSeconds);
-        
-        // Schedule notification for timer completion in background
-        if (this.isRunning && this.currentSeconds > 0) {
-            const timeLeft = this.currentSeconds;
-            console.log('Scheduling background notification in', timeLeft, 'seconds');
-            setTimeout(() => {
-                if (document.visibilityState === 'hidden') {
-                    const message = 'Hẹn giờ đã kết thúc!';
-                    if (window.Android) {
-                        window.Android.showNotification('Hoàn thành!', message);
-                    } else {
-                        this.ui.showNotification('Hoàn thành!', message);
-                    }
-                }
-            }, timeLeft * 1000);
-        }
     }
 
     handleForegroundState() {
@@ -512,38 +470,15 @@ class CountdownTimer {
     }
 
     onTimerComplete() {
-        console.log('Timer completed, current cycle:', this.cycleCount + 1);
-        
-        // Dừng timer hiện tại
-        clearInterval(this.intervalId);
-        this.intervalId = null;
-        
         this.cycleCount++;
         this.playCompletionSound();
-
-        // Show notification for cycle completion
-        const message = `Đã hoàn thành chu kỳ ${this.cycleCount}`;
-        if (window.Android) {
-            console.log('Showing Android notification');
-            window.Android.showNotification('Hoàn thành chu kỳ!', message);
-        } else {
-            console.log('Showing web notification');
-            this.ui.showNotification('Hoàn thành chu kỳ!', message);
-        }
         
-        // Kiểm tra nếu đã đạt đủ số chu kỳ
         if (this.maxCycles > 0 && this.cycleCount >= this.maxCycles) {
-            console.log('Reached max cycles:', this.maxCycles);
             this.handleCycleCompletion();
             return;
         }
         
-        // Bắt đầu chu kỳ mới
         this.currentSeconds = this.totalSeconds;
-        if (this.isRunning) {
-            console.log('Starting new cycle');
-            this.start(true);
-        }
         this.updateUI();
     }
 
@@ -557,21 +492,15 @@ class CountdownTimer {
     }
 
     handleCycleCompletion() {
-        console.log('All cycles completed');
         this.isRunning = false;
-        this.isPaused = false;
         clearInterval(this.intervalId);
-        this.intervalId = null;
-        
-        // Reset currentSeconds để không bị âm
-        this.currentSeconds = 0;
         this.updateUI();
 
         const message = `🎉 Đã hoàn thành ${this.cycleCount} chu kỳ!`;
         if (window.Android) {
             window.Android.showNotification('Hoàn thành!', message);
         } else {
-            this.ui.showNotification('Hoàn thành!', message);
+            alert(message);
         }
     }
 
